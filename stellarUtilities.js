@@ -1,17 +1,21 @@
 // Initial requirements
+
 let Stellar  = require('stellar-sdk'); // Stellar JS library
 let request  = require('request-promise'); // Request library
 
 
 // Pointing server object to horizon testnet.
+
 const server = new Stellar.Server('https://horizon-testnet.stellar.org');
 Stellar.Network.useTestNetwork();
 
 let utilityObject = {
     
     createAndFundAccount : async function createAndFundAccount(pair) {
-     console.log();
-        await request.get({
+        console.log();
+
+        // GET request for creating and funding the account using friendbot
+        await request.get({ 
             uri: 'https://horizon-testnet.stellar.org/friendbot',
             qs: { addr: pair.publicKey() },
             json: true
@@ -19,46 +23,49 @@ let utilityObject = {
 
         accountA = await server.loadAccount(pair.publicKey()); // Load newly created account
 
-        console.log( 'Balances for account: ' + pair.publicKey() );
-    
+        console.log( 'Balances for account: ' + pair.publicKey() ); // Displaying the balances
         accountA.balances.forEach( (balance) => {
             console.log( 'Type:', balance.asset_type, ', Balance:', balance.balance, ', Code:', balance.asset_code);
             console.log();
         })
     },
    
-    changeTrust : async function changeTrust(truster, lim, assZ) {
-      console.log();
-      accountTruster = await server.loadAccount( Stellar.Keypair.fromPublicKey(truster.publicKey()).publicKey() );
-      const transaction = new Stellar.TransactionBuilder(accountTruster)
-      .addOperation(Stellar.Operation.changeTrust({
-        asset : assZ,
-        limit : lim
-      }))
-      .build();
-
-      transaction.sign(truster);
-
-      console.log( "XDR format of transaction: ", transaction.toEnvelope().toXDR('base64') );
-
-      try {
+    changeTrust : async function changeTrust(truster, lim, assZ) { // Function to establish a trust line between an account and an asset
+        console.log();                                                
         
-          const transactionResult = await server.submitTransaction(transaction);
+        accountTruster = await server.loadAccount( Stellar.Keypair.fromPublicKey(truster.publicKey()).publicKey() );
+        const transaction = new Stellar.TransactionBuilder(accountTruster)
+        .addOperation(Stellar.Operation.changeTrust({
+            asset : assZ,
+            limit : lim
+        }))
+        .build();
 
-          console.log('Success! View the transaction at: ');
-          console.log(transactionResult._links.transaction.href);
-          // console.log(JSON.stringify(transactionResult, null, 2));
+        transaction.sign(truster);
+
+        console.log( "XDR format of transaction: ", transaction.toEnvelope().toXDR('base64') );
+
+        try {
+        
+            const transactionResult = await server.submitTransaction(transaction);
+
+            console.log('Success! View the transaction at: ');
+            console.log(transactionResult._links.transaction.href);
+            
+            // console.log(JSON.stringify(transactionResult, null, 2)); // Uncomment this line if you wish to see transaction details
           
-      } catch (err) {
-            console.log('An error has occured:');
-            console.log(err);
-        }
-        console.log();
+        } catch (err) {
+              console.log('An error has occured:');
+              console.log(err);
+          }
+        
+          console.log();
     },
     
 
-    createContract : async function createContract(src, dest, randomSigner, assZ, amt) {
-      console.log();
+    createContract : async function createContract(src, dest, randomSigner, assZ, amt) { // a function to return a preauthorized transaction that can be signed as when required
+        console.log();
+        
         accountSource = await server.loadAccount(src.publicKey());
 
         accountSource.incrementSequenceNumber(); // a transaction that will take place in the future
@@ -89,7 +96,7 @@ let utilityObject = {
 
         
         
-          transaction.sign(src);
+        transaction.sign(src);
 
         console.log("XDR format of transaction: ", transaction.toEnvelope().toXDR('base64'));
 
@@ -101,49 +108,51 @@ let utilityObject = {
             // console.log(JSON.stringify(transactionResult, null, 2))
             
         
-        } catch (err) {
-              console.log('An error has occured:')
-              console.log(err)
-          }
-          console.log();
-          return preAuthTx;
+        }   catch (err) {
+                console.log('An error has occured:')
+                console.log(err)
+            }
+            console.log();
+            
+            return preAuthTx;
     },
 
     
     sendData: async function sendData(source, dest, asset) {
 
-      console.log();
-      accountSource = await server.loadAccount(source.publicKey());
+        console.log();
+        accountSource = await server.loadAccount(source.publicKey());
 
-      const transaction = new Stellar.TransactionBuilder(accountSource)
-          .addOperation(Stellar.Operation.payment({
-              destination: dest.publicKey(),
-              asset: asset,
-              amount: "1"
-        }))
+        const transaction = new Stellar.TransactionBuilder(accountSource)
+            .addOperation(Stellar.Operation.payment({
+                destination: dest.publicKey(),
+                asset: asset,
+                amount: "1"
+            }))
         .addMemo(Stellar.Memo.text('Nuclear code: send nukes'))
         .build();
       
-      transaction.sign(source);
+        transaction.sign(source);
       
-      try {
+        try {
         
-        const transactionResult = await server.submitTransaction(transaction);
+            const transactionResult = await server.submitTransaction(transaction);
 
-        console.log('Success! View the transaction at: ');
-        console.log(transactionResult._links.transaction.href);
-        // console.log(JSON.stringify(transactionResult, null, 2));
+            console.log('Success! View the transaction at: ');
+            console.log(transactionResult._links.transaction.href);
+            // console.log(JSON.stringify(transactionResult, null, 2)); // Uncomment this line if you wish to view transaction details
         
-      } catch (err) {
+        } catch (err) {
             console.log('An error has occured:');
             console.log(err);
-      }
-      console.log();
+        }
+        
+        console.log();
     },
 
     sendAsset: async function sendAsset(source, dest, amount, asset) {
-
-      console.log();
+        console.log();
+        
         accountSrc  = await server.loadAccount(source.publicKey());
         
         const transaction = new Stellar.TransactionBuilder(accountSrc)
@@ -154,28 +163,30 @@ let utilityObject = {
             }))
         .build();
 
-      transaction.sign(source);
+        transaction.sign(source);
 
-      console.log("XDR format of transaction: ", transaction.toEnvelope().toXDR('base64'));
+        console.log("XDR format of transaction: ", transaction.toEnvelope().toXDR('base64'));
 
-      try {
-          const transactionResult = await server.submitTransaction(transaction)
+        try {
+            const transactionResult = await server.submitTransaction(transaction)
 
-          console.log('Success! View the transaction at: ');
-          console.log(transactionResult._links.transaction.href);
-          // console.log(JSON.stringify(transactionResult, null, 2));
+            console.log('Success! View the transaction at: ');
+            console.log(transactionResult._links.transaction.href);
+            // console.log(JSON.stringify(transactionResult, null, 2)); // Uncomment this line if you wish to view transaction details 
         
-      } catch (err) {
-            console.log('An error has occured:')
-            console.log(err)
-      };
-      console.log();
+        }   catch (err) {
+                console.log('An error has occured:')
+                console.log(err)
+            };
+        
+        console.log();
     },
 
     
-    lockAccount: async function lockAccount(pair) {
+    lockAccount: async function lockAccount(pair) { // a function that locks any account. Usually done for and issuer account.
       
-      console.log();
+        console.log();
+        
         accountToBeLocked = await server.loadAccount(pair.publicKey());
 
         const transaction = new Stellar.TransactionBuilder(accountToBeLocked)
@@ -187,27 +198,29 @@ let utilityObject = {
             }))
         .build();
 
-      transaction.sign(pair);
+        transaction.sign(pair);
 
-      console.log("XDR format of transaction: ", transaction.toEnvelope().toXDR('base64'));
+        console.log("XDR format of transaction: ", transaction.toEnvelope().toXDR('base64'));
 
-      try {
-        const transactionResult = await server.submitTransaction(transaction);
+        try {
+            const transactionResult = await server.submitTransaction(transaction);
 
-        console.log('Success! View the transaction at: ');
-        console.log(transactionResult._links.transaction.href);
-        // console.log(JSON.stringify(transactionResult, null, 2));
+            console.log('Success! View the transaction at: ');
+            console.log(transactionResult._links.transaction.href);
+        // console.log(JSON.stringify(transactionResult, null, 2)); //Uncomment this line if you wish to view transaction details
         
-      } catch (err) {
-        console.log('An error has occured:');
-        console.log(err);
-      }
-      console.log();
+        } catch (err) {
+            console.log('An error has occured:');
+            console.log(err);
+        }
+      
+        console.log();
     },
 
     
     showBalance: async function showBalance(pair) {
-      console.log();
+        console.log();
+        
         account = await server.loadAccount(pair.publicKey());
 
 
@@ -220,8 +233,7 @@ let utilityObject = {
 
     
     transact : async function transact(pairSeller, pairEscrow, pairBuyer, asset, amount, lim) {
-
-      console.log();
+        console.log();
         console.log("Creating a temporary account for storing ZFC");
         
         let pairTemp = Stellar.Keypair.random();
